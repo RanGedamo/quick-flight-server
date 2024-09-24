@@ -13,53 +13,24 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v2
 
-    - name: Set up Node.js
-      uses: actions/setup-node@v3
-      with:
-        node-version: '16'  # או '20', תלוי בדרישות הפרויקט שלך
-
     - name: Set up SSH
-      uses: webfactory/ssh-agent@v0.8.0
+      uses: webfactory/ssh-agent@v0.5.3
       with:
         ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
-    - name: Check Node.js and npm versions
-      run: |
-        node --version
-        npm --version
-
-    - name: Check SSH key permissions
-      run: |
-        ls -l ~/.ssh
-        ssh-add -l
-
-    - name: Debug SSH connection
+    - name: Test SSH connection
       run: |
         ssh -vvv -o StrictHostKeyChecking=no ec2-user@44.203.235.117 'echo "Connection successful"'
 
-    - name: Check EC2 environment
+    - name: Debug - List files in home directory
       run: |
-        ssh -o StrictHostKeyChecking=no ec2-user@44.203.235.117 << 'ENDSSH'
-        echo "Current directory: $(pwd)"
-        echo "Node version: $(node -v)"
-        echo "NPM version: $(npm -v)"
-        echo "PM2 version: $(pm2 -v)"
-        ls -la /home/ec2-user/quick-flight-server
-        ENDSSH
+        ssh -o StrictHostKeyChecking=no ec2-user@44.203.235.117 'ls -la ~'
 
     - name: Deploy to EC2
       run: |
-        ssh -o StrictHostKeyChecking=no ec2-user@44.203.235.117 << 'ENDSSH'
-        cd /home/ec2-user/quick-flight-server
-        git pull origin master
-        npm install
+        ssh -o StrictHostKeyChecking=no ec2-user@44.203.235.117 << EOF
+        cd /home/ec2-user/quick-flight-server &&
+        git pull origin master &&
+        npm install &&
         pm2 restart all
-        ENDSSH
-
-    - name: Verify deployment
-      run: |
-        ssh -o StrictHostKeyChecking=no ec2-user@44.203.235.117 << 'ENDSSH'
-        cd /home/ec2-user/quick-flight-server
-        git rev-parse HEAD
-        pm2 list
-        ENDSSH
+        EOF
