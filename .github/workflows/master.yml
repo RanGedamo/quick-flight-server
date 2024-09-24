@@ -17,7 +17,9 @@ jobs:
       uses: webfactory/ssh-agent@v0.5.3
       with:
         ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
-
+- name: Debug SSH connection
+  run: 
+    ssh -vvv -i StrictHostKeyChecking=no ec2-user@44.203.235.117
     - name: Deploy to EC2
       run: |
         ssh -o StrictHostKeyChecking=no ec2-user@44.203.235.117 <<EOF
@@ -25,4 +27,6 @@ jobs:
         git pull origin master &&
         npm install &&
         pm2 restart all
-        EOF 
+        EOF
+        
+        
