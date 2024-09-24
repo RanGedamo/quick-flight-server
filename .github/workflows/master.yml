@@ -18,14 +18,11 @@ jobs:
       with:
         ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
-- name: Deploy to EC2
-  run: |
-    ssh -o StrictHostKeyChecking=no ec2-user@44.203.235.117 << 'ENDSSH'
-    cd /home/ec2-user/quick-flight-server
-    git pull origin master
-    npm install
-    pm2 restart all
-    ENDSSH 
-- name: Debug SSH connection
-  run: |
-    ssh -vvv -o StrictHostKeyChecking=no -i ${{ secrets.SSH_PRIVATE_KEY }} ec2-user@44.203.235.117 'echo "Connection successful"'
+    - name: Deploy to EC2
+      run: |
+        ssh -o StrictHostKeyChecking=no ec2-user@44.203.235.117 << 'ENDSSH'
+        cd /home/ec2-user/quick-flight-server && 
+        git pull origin master &&
+        npm install &&
+        pm2 restart all
+        ENDSSH 
