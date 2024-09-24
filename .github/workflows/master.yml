@@ -13,7 +13,7 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v2
 
-    - name: Set up SSH
+    - name: Set up SSH agent
       uses: webfactory/ssh-agent@v0.5.3
       with:
         ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
@@ -21,6 +21,10 @@ jobs:
     - name: Test SSH connection
       run: |
         ssh -vvv -o StrictHostKeyChecking=no ec2-user@44.203.235.117 'echo "Connection successful"'
+
+    - name: Debug - Verify SSH agent keys
+      run: |
+        ssh-add -L || echo "No SSH keys loaded"
 
     - name: Debug - List files in home directory
       run: |
