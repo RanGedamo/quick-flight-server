@@ -14,25 +14,54 @@ jobs:
 
       - name: Set up SSH key
         run: |
-          set -x # Print executed commands
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" > /home/runner/.ssh/id_rsa
-          chmod 600 /home/runner/.ssh/id_rsa
-          ls -la /home/runner/.ssh # List files in .ssh directory for verification
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H 44.203.235.117 >> ~/.ssh/known_hosts
+
+      - name: Debug SSH setup
+        run: |
+          ls -la ~/.ssh
+          cat ~/.ssh/known_hosts
 
       - name: Test SSH connection
         run: |
-          set -x
-          ssh -i /home/runner/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@44.203.235.117 'echo "Connection successful"' || exit 1
+          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@44.203.235.117 'echo "Connection successful"' || (echo "SSH connection failed" && exit 1)
+
+      - name: Debug environment
+        run: |
+          echo "Current working directory: $(pwd)"
+          echo "Node.js version: $(node -v)"
+          echo "NPM version: $(npm -v)"
+          echo "PM2 version: $(pm2 -v || echo 'PM2 not installed')"
 
       - name: Deploy to EC2
         run: |
-          set -x
-          echo "Current working directory: $(pwd)" 
-          echo "Node.js version: $(node -v)" 
-          ssh -i /home/runner/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@44.203.235.117 "bash -s" <<'EOF'
-          cd /home/ec2-user/quick-flight-server || exit 1
-          echo "Deployment directory: $(pwd)"
-          git pull origin master || exit 1
-          npm install || exit 1
-          pm2 restart all || exit 1
+          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@44.203.235.117 << 'EOF'
+            set -e
+            echo "Starting deployment"
+            cd /home/ec2-user/quick-flight-server || (echo "Failed to change directory" && exit 1)
+            echo "Current directory: $(pwd)"
+            
+            echo "Pulling latest changes"
+            git pull origin master || (echo "Git pull failed" && exit 1)
+            
+            echo "Installing dependencies"
+            npm install || (echo "NPM install failed" && exit 1)
+            
+            echo "Restarting PM2 processes"
+            pm2 list
+            pm2 restart all || (echo "PM2 restart failed" && exit 1)
+            
+            echo "Deployment completed successfully"
+          EOF
+
+      - name: Verify deployment
+        run: |
+          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@44.203.235.117 << 'EOF'
+            echo "Verifying deployment"
+            cd /home/ec2-user/quick-flight-server
+            git rev-parse HEAD
+            pm2 list
+            echo "Verification completed"
           EOF
