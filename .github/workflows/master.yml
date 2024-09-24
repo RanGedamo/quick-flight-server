@@ -20,8 +20,9 @@ jobs:
 
     - name: Deploy to EC2
       run: |
-        ssh -o StrictHostKeyChecking=no ec2-user@44.203.235.117
+        ssh -o StrictHostKeyChecking=no ec2-user@44.203.235.117 << EOF
         cd /home/ec2-user/quick-flight-server &&
-        git pull origin main &&
+        git pull origin master &&
         npm install && 
-        pm2 restart all"
+        pm2 restart all
+        EOF
