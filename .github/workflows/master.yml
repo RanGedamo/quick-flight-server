@@ -23,6 +23,6 @@ jobs:
         ssh -o StrictHostKeyChecking=no ec2-user@44.203.235.117 <<EOF
         cd /home/ec2-user/quick-flight-server && 
         git pull origin master &&
-        npm install && 
+        npm install &&
         pm2 restart all
         EOF 
