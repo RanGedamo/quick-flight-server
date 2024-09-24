@@ -3,31 +3,29 @@ name: Deploy to EC2
 on:
   push:
     branches:
-      - master  # או main, תלוי באיזה ענף ראשי אתה משתמש
+      - master
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    
     steps:
-    - uses: actions/checkout@v2
-    
-    - name: Install SSH Key
-      uses: shimataro/ssh-key-action@v2
-      with:
-        key: ${{ secrets.EC2_SSH_KEY }}
-        known_hosts: ${{ secrets.KNOWN_HOSTS }}
-        
-    - name: Adding Known Hosts
-      run: ssh-keyscan -H 44.203.235.117 >> ~/.ssh/known_hosts
-      
-    - name: Deploy to EC2
-      env:
-        HOST: ec2-user@44.203.235.117
-      run: |
-        ssh -o StrictHostKeyChecking=no $HOST << 'ENDSSH'
-          cd ~/quick-flight-server
-          git pull origin master
-          npm install
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up SSH key
+        run: |
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > /home/runner/.ssh/id_rsa
+          chmod 600 /home/runner/.ssh/id_rsa
+
+      - name: Test SSH connection
+        run: |
+          ssh -i /home/runner/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@44.203.235.117 'echo "Connection successful"'
+
+      - name: Deploy to EC2
+        run: |
+          ssh -i /home/runner/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@44.203.235.117 <<EOF
+          cd /home/ec2-user/quick-flight-server &&
+          git pull origin master &&
+          npm install &&
           pm2 restart all
-        ENDSSH
+          EOF
