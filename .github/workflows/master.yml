@@ -21,11 +21,13 @@ jobs:
     - name: Adding Known Hosts
       run: ssh-keyscan -H 44.203.235.117 >> ~/.ssh/known_hosts
       
-    - name: Deploy with rsync
+    - name: Deploy to EC2
+      env:
+        HOST: ec2-user@44.203.235.117
       run: |
-        ssh -i ~/.ssh/id_rsa ec2-user@44.203.235.117 "
-          cd ~/quick-flight-server &&
-          git pull origin master &&
-          npm install &&
+        ssh -o StrictHostKeyChecking=no $HOST << 'ENDSSH'
+          cd ~/quick-flight-server
+          git pull origin master
+          npm install
           pm2 restart all
-        "
+        ENDSSH
