@@ -3,29 +3,29 @@ name: Deploy to EC2
 on:
   push:
     branches:
-      - master
+      - master  # או main, תלוי באיזה ענף ראשי אתה משתמש
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
-
-      - name: Set up SSH agent
-        uses: webfactory/ssh-agent@v0.5.3
-        with:
-          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
-
-      - name: Test SSH connection
-        run: |
-          ssh -vvv -o StrictHostKeyChecking=no ec2-user@44.203.235.117 'echo "Connection successful"'
-
-      - name: Deploy to EC2
-        run: |
-          ssh -o StrictHostKeyChecking=no ec2-user@44.203.235.117 <<EOF
-          cd /home/ec2-user/quick-flight-server &&
+    - uses: actions/checkout@v2
+    
+    - name: Install SSH Key
+      uses: shimataro/ssh-key-action@v2
+      with:
+        key: ${{ secrets.EC2_SSH_KEY }}
+        known_hosts: ${{ secrets.KNOWN_HOSTS }}
+        
+    - name: Adding Known Hosts
+      run: ssh-keyscan -H 44.203.235.117 >> ~/.ssh/known_hosts
+      
+    - name: Deploy with rsync
+      run: |
+        ssh -i ~/.ssh/id_rsa ec2-user@44.203.235.117 "
+          cd ~/quick-flight-server &&
           git pull origin master &&
           npm install &&
           pm2 restart all
-          EOF
+        "
