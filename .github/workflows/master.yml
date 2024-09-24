@@ -26,6 +26,6 @@ jobs:
         npm install &&
         pm2 restart all
         EOF 
-    - name: Debug SSH connection
-      run: |
-        ssh -vvv -i path/to/private_key ec2-user@your-ec2-ip-address
+- name: Debug SSH connection
+  run: |
+    ssh -vvv -o StrictHostKeyChecking=no -i ${{ secrets.SSH_PRIVATE_KEY }} ec2-user@44.203.235.117 'echo "Connection successful"'
