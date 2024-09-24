@@ -8,33 +8,24 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v2
+      - name: Checkout code
+        uses: actions/checkout@v2
 
-    - name: Set up SSH agent
-      uses: webfactory/ssh-agent@v0.5.3
-      with:
-        ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+      - name: Set up SSH agent
+        uses: webfactory/ssh-agent@v0.5.3
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
-    - name: Test SSH connection
-      run: |
-        ssh -vvv -o StrictHostKeyChecking=no ec2-user@44.203.235.117 'echo "Connection successful"'
+      - name: Test SSH connection
+        run: |
+          ssh -vvv -o StrictHostKeyChecking=no ec2-user@44.203.235.117 'echo "Connection successful"'
 
-    - name: Debug - Verify SSH agent keys
-      run: |
-        ssh-add -L || echo "No SSH keys loaded"
-
-    - name: Debug - List files in home directory
-      run: |
-        ssh -o StrictHostKeyChecking=no ec2-user@44.203.235.117 'ls -la ~'
-
-    - name: Deploy to EC2
-      run: |
-        ssh -o StrictHostKeyChecking=no ec2-user@44.203.235.117 << EOF
-        cd /home/ec2-user/quick-flight-server &&
-        git pull origin master &&
-        npm install &&
-        pm2 restart all
-        EOF
+      - name: Deploy to EC2
+        run: |
+          ssh -o StrictHostKeyChecking=no ec2-user@44.203.235.117 <<EOF
+          cd /home/ec2-user/quick-flight-server &&
+          git pull origin master &&
+          npm install &&
+          pm2 restart all
+          EOF
