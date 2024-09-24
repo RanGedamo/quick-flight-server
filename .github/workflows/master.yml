@@ -8,25 +8,27 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
+    - name: Checkout code
+      uses: actions/checkout@v2
 
-      - name: Set up SSH key
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
+    - name: Set up SSH key
+      run: |
+        mkdir -p ~/.ssh
+        echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+        chmod 600 ~/.ssh/id_rsa
+        ssh-add ~/.ssh/id_rsa
 
-      - name: Test SSH connection
-        run: |
-          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@44.203.235.117 'echo "Connection successful"'
+    - name: Test SSH connection
+      run: |
+        ssh -vvv -o StrictHostKeyChecking=no ec2-user@44.203.235.117 'echo "Connection successful"'
 
-      - name: Deploy to EC2
-        run: |
-          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@44.203.235.117 <<EOF
-          cd /home/ec2-user/quick-flight-server &&
-          git pull origin master &&
-          npm install &&
-          pm2 restart all
-          EOF
+    - name: Deploy to EC2
+      run: |
+        ssh -o StrictHostKeyChecking=no ec2-user@44.203.235.117 <<EOF
+        cd /home/ec2-user/quick-flight-server &&
+        git pull origin master &&
+        npm install &&
+        pm2 restart all
+        EOF
