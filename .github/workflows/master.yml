@@ -3,65 +3,45 @@ name: Deploy to EC2
 on:
   push:
     branches:
-      - master
+      - master  # או main, תלוי באיזה ענף ראשי אתה משתמש
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
+    - name: Checkout code
+      uses: actions/checkout@v2
 
-      - name: Set up SSH key
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H 44.203.235.117 >> ~/.ssh/known_hosts
+    - name: Install Node.js
+      uses: actions/setup-node@v2
+      with:
+        node-version: '14'  # או הגרסה שאתה משתמש בה
 
-      - name: Debug SSH setup
-        run: |
-          ls -la ~/.ssh
-          cat ~/.ssh/known_hosts
+    - name: Install dependencies
+      run: npm ci
 
-      - name: Test SSH connection
-        run: |
-          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@44.203.235.117 'echo "Connection successful"' || (echo "SSH connection failed" && exit 1)
+    - name: Run tests
+      run: npm test
+      
+    - name: Install SSH key
+      uses: webfactory/ssh-agent@v0.5.0
+      with:
+        ssh-private-key: ${{ secrets.EC2_SSH_KEY }}
+        
+    - name: Add EC2 to known hosts
+      run: |
+        mkdir -p ~/.ssh
+        ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
 
-      - name: Debug environment
-        run: |
-          echo "Current working directory: $(pwd)"
-          echo "Node.js version: $(node -v)"
-          echo "NPM version: $(npm -v)"
-          echo "PM2 version: $(pm2 -v || echo 'PM2 not installed')"
-
-      - name: Deploy to EC2
-        run: |
-          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@44.203.235.117 << 'EOF'
-            set -e
-            echo "Starting deployment"
-            cd /home/ec2-user/quick-flight-server || (echo "Failed to change directory" && exit 1)
-            echo "Current directory: $(pwd)"
-            
-            echo "Pulling latest changes"
-            git pull origin master || (echo "Git pull failed" && exit 1)
-            
-            echo "Installing dependencies"
-            npm install || (echo "NPM install failed" && exit 1)
-            
-            echo "Restarting PM2 processes"
-            pm2 list
-            pm2 restart all || (echo "PM2 restart failed" && exit 1)
-            
-            echo "Deployment completed successfully"
-          EOF
-
-      - name: Verify deployment
-        run: |
-          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@44.203.235.117 << 'EOF'
-            echo "Verifying deployment"
-            cd /home/ec2-user/quick-flight-server
-            git rev-parse HEAD
-            pm2 list
-            echo "Verification completed"
-          EOF
+    - name: Deploy to EC2
+      env:
+        HOST: ${{ secrets.EC2_HOST }}
+        USER: ${{ secrets.EC2_USERNAME }}
+      run: |
+        scp -r ./* ${USER}@${HOST}:~/quick-flight-server
+        ssh ${USER}@${HOST} << EOF
+          cd ~/quick-flight-server
+          npm install
+          pm2 restart all
+        EOF
