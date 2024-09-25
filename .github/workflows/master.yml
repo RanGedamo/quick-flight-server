@@ -18,12 +18,20 @@ jobs:
       with:
         ssh-private-key: ${{ secrets.EC2_SSH_KEY }}
         
+    - name: Debug SSH key
+      run: |
+        if [ -z "${{ secrets.EC2_SSH_KEY }}" ]; then
+          echo "EC2_SSH_KEY is empty"
+        else
+          echo "EC2_SSH_KEY is set and not empty"
+        fi
+
     - name: Add EC2 to known hosts
       run: |
         mkdir -p ~/.ssh
         ssh-keyscan -H 44.203.235.117 >> ~/.ssh/known_hosts
 
-    - name: Deploy to EC2 
+    - name: Deploy to EC2
       run: |
         ssh -o StrictHostKeyChecking=no ec2-user@44.203.235.117 << EOF
           # Navigate to project directory
