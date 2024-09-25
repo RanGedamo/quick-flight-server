@@ -18,7 +18,7 @@ jobs:
         mkdir -p ~/.ssh
         echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
         chmod 600 ~/.ssh/id_rsa
-        ssh-keygen -y -f ~/.ssh/id_rsa > ~/.ssh/id_rsa.pub
+        ssh-keygen -p -f ~/.ssh/id_rsa -m PEM -P "" -N ""
 
     - name: Debug SSH key
       run: |
@@ -34,7 +34,7 @@ jobs:
 
     - name: Deploy to EC2
       run: |
-        ssh -o StrictHostKeyChecking=no ec2-user@44.203.235.117 << EOF
+        ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ec2-user@44.203.235.117 << EOF
           # Navigate to project directory
           cd ~/quick-flight-server
 
@@ -59,4 +59,4 @@ jobs:
     - name: Verify Deployment
       run: |
         echo "Verifying deployment..."
-        ssh -o StrictHostKeyChecking=no ec2-user@44.203.235.117 "pm2 list"
+        ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ec2-user@44.203.235.117 "pm2 list"
