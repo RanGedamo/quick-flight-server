@@ -19,15 +19,6 @@ jobs:
         echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
         chmod 600 ~/.ssh/id_rsa
 
-    - name: Debug SSH key
-      run: |
-        if [ -s ~/.ssh/id_rsa ]; then
-          echo "SSH key is installed and not empty"
-          ls -l ~/.ssh/id_rsa
-        else
-          echo "SSH key is empty or not installed"
-        fi
-
     - name: Add EC2 to known hosts
       run: ssh-keyscan -H 44.203.235.117 >> ~/.ssh/known_hosts
 
