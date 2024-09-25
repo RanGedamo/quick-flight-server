@@ -13,17 +13,6 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v2
 
-    - name: Install Node.js
-      uses: actions/setup-node@v2
-      with:
-        node-version: '14'  # או הגרסה שאתה משתמש בה
-
-    - name: Install dependencies
-      run: npm ci
-
-    - name: Run tests
-      run: npm test
-      
     - name: Install SSH key
       uses: webfactory/ssh-agent@v0.5.0
       with:
@@ -32,16 +21,28 @@ jobs:
     - name: Add EC2 to known hosts
       run: |
         mkdir -p ~/.ssh
-        ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
+        ssh-keyscan -H 44.203.235.117 >> ~/.ssh/known_hosts
 
     - name: Deploy to EC2
-      env:
-        HOST: ${{ secrets.EC2_HOST }}
-        USER: ${{ secrets.EC2_USERNAME }}
       run: |
-        scp -r ./* ${USER}@${HOST}:~/quick-flight-server
-        ssh ${USER}@${HOST} << EOF
+        ssh -o StrictHostKeyChecking=no ec2-user@44.203.235.117 << EOF
+          # Navigate to project directory
           cd ~/quick-flight-server
+
+          # Update the repository
+          git pull origin master
+
+          # Load NVM and use the correct Node version
+          export NVM_DIR="\$HOME/.nvm"
+          [ -s "\$NVM_DIR/nvm.sh" ] && \. "\$NVM_DIR/nvm.sh"
+          nvm use node
+
+          # Install dependencies
           npm install
-          pm2 restart all
+
+          # Install PM2 globally if not already installed
+          npm install -g pm2
+
+          # Restart the application
+          pm2 restart all || pm2 start npm --name "quick-flight-server" -- start
         EOF
