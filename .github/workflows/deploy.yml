@@ -13,40 +13,45 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v2
 
-    - name: Install SSH key
+    - name: Set up SSH key
       run: |
         mkdir -p ~/.ssh
-        echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
+        echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
         chmod 600 ~/.ssh/id_rsa
 
     - name: Add EC2 to known hosts
-      run: ssh-keyscan -H 44.203.235.117 >> ~/.ssh/known_hosts
+      run: |
+        ssh-keyscan -H 44.203.235.117 >> ~/.ssh/known_hosts
+
+    - name: Test SSH connection
+      run: |
+        ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@44.203.235.117 'echo "SSH connection successful"'
 
     - name: Deploy to EC2
       run: |
-        ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ec2-user@44.203.235.117 << EOF
-          # Navigate to project directory
+        ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@44.203.235.117 << EOF
+          # נווט לתיקיית הפרויקט
           cd ~/quick-flight-server
 
-          # Update the repository
+          # עדכן את הפרויקט מה-Repository
           git pull origin master
 
-          # Load NVM and use the correct Node version
-          export NVM_DIR="\$HOME/.nvm"
-          [ -s "\$NVM_DIR/nvm.sh" ] && \. "\$NVM_DIR/nvm.sh"
+          # טען את nvm ושימוש בגרסת Node הנכונה
+          export NVM_DIR="$HOME/.nvm"
+          [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
           nvm use node
 
-          # Install dependencies
+          # התקן תלותים
           npm install
 
-          # Install PM2 globally if not already installed
+          # התקן PM2 גלובלי במידה והוא לא מותקן כבר
           npm install -g pm2
 
-          # Restart the application
+          # הפעל מחדש את האפליקציה
           pm2 restart all || pm2 start npm --name "quick-flight-server" -- start
         EOF
 
     - name: Verify Deployment
       run: |
         echo "Verifying deployment..."
-        ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ec2-user@44.203.235.117 "pm2 list"
+        ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@44.203.235.117 "pm2 list"
